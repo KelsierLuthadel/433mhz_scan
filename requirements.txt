@@ -1,0 +1,17 @@
+﻿# Core  required
+pyrtlsdr>=0.3.0     # RTL-SDR hardware interface (wraps librtlsdr)
+numpy>=1.24         # signal processing
+
+# System dependency (not pip-installable):
+#   Windows : install librtlsdr DLL from https://github.com/osmocom/rtl-sdr/releases
+#             place rtlsdr.dll alongside python or on PATH
+#   Linux   : sudo apt install librtlsdr-dev
+#   macOS   : brew install librtlsdr
+
+# Optional  only needed when the matching flag is used
+flask>=3.0          # --web  dashboard
+paho-mqtt>=1.6      # --mqtt-host  publishing
+pyserial>=3.5       # --gps  USB GPS receiver
+
+# Development / testing
+pytest>=8.0
