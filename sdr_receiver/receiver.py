@@ -67,7 +67,8 @@ class OOKReceiver:
                     if pkt is not None:
                         yield pkt
                     else:
-                        logger.debug("no decoder matched (%d pulses)", len(packet_pulses))
+                        widths = [(round(p.pulse_us), round(p.gap_us)) for p in packet_pulses[:6]]
+                        logger.debug("no decoder matched (%d pulses) pulse/gap(us)=%s", len(packet_pulses), widths)
 
 
 class UATReceiver:
