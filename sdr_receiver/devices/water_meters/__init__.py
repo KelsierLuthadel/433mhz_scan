@@ -5,6 +5,7 @@ from .AradMsMeter import AradMsMeter
 from .BadgerOrionEndpoint import BadgerOrionEndpoint
 from .BadgerWater import BadgerWater
 from .NeptuneR900 import NeptuneR900
+from .NeptuneR900BCD import NeptuneR900BCD
 from .OilSmart import OilSmart
 from .OilStandard import OilStandard
 from .OilWatchman import OilWatchman
@@ -25,6 +26,7 @@ __all__ = [
     "BadgerOrionEndpoint",
     "BadgerWater",
     "NeptuneR900",
+    "NeptuneR900BCD",
     "OilSmart",
     "OilStandard",
     "OilWatchman",

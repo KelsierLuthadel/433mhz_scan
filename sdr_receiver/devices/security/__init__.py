@@ -1,5 +1,6 @@
 """Security and alarm device decoders."""
 from .CaviusSensor import CaviusSensor
+from .RoboguardIQBlue import RoboguardIQBlue
 from .ChuangoSecurity import ChuangoSecurity
 from .DSCSecurity import DSCSecurity
 from .GenericMotion import GenericMotion

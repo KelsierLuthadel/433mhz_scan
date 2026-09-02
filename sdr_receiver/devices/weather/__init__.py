@@ -123,6 +123,7 @@ from .ThermoProTX7B import ThermoProTX7B
 
 # auriol_a group
 from .Auriol4LD5661 import Auriol4LD5661
+from .Auriol4LD6654 import Auriol4LD6654
 from .AuriolAFT77B2 import AuriolAFT77B2
 from .AuriolAFW2A1 import AuriolAFW2A1
 from .AuriolAHFL import AuriolAHFL
