@@ -1,6 +1,5 @@
 ﻿"""car_remotes  one-file-per-device package."""
 from .AstrostartCarRemote import AstrostartCarRemote
-from .BmwKeyFob import BmwKeyFob
 from .AudiovoxProOE3B import AudiovoxProOE3B
 from .ChryslerCarRemote import ChryslerCarRemote
 from .CodeAlarmCarRemote import CodeAlarmCarRemote
@@ -15,7 +14,6 @@ from .OpelMokka import OpelMokka
 
 __all__ = [
     "AstrostartCarRemote",
-    "BmwKeyFob",
     "AudiovoxProOE3B",
     "ChryslerCarRemote",
     "CodeAlarmCarRemote",
