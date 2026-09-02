@@ -56,12 +56,10 @@ class OOKReceiver:
                 if stop and stop.is_set():
                     break
                 pulses = demodulate_ook(samples, self.sample_rate)
-                if pulses:
-                    widths = [round(p.pulse_us) for p in pulses[:8]]
-                    logger.debug("chunk: %d pulses, widths(us)=%s", len(pulses), widths)
                 packets = extract_packets(pulses, reset_us=RESET_GAP_US)
                 if packets:
-                    logger.debug("packets found: %d", len(packets))
+                    widths = [round(p.pulse_us) for p in pulses[:8]]
+                    logger.debug("chunk: %d pulses, %d packets, widths(us)=%s", len(pulses), len(packets), widths)
                 for packet_pulses in packets:
                     pkt = try_decode(packet_pulses, self.freq_hz)
                     if pkt is not None:
