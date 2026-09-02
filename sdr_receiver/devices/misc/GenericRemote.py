@@ -47,9 +47,11 @@ class GenericRemote(OOKPWMDecoder):
         if device_id == 0x0000 or cmd == 0x00:
             return None
         raw24 = (b0 << 16) | (b1 << 8) | b2
-        tri = ''.join(self._TRI.get(((raw24 >> (22 - 2 * i)) & 2) >> 1,
-                                     (raw24 >> (22 - 2 * i)) & 1) or '?'
-                      for i in range(12))
+        tri = ''.join(
+            self._TRI.get((((raw24 >> (22 - 2 * i)) & 2) >> 1,
+                            (raw24 >> (22 - 2 * i)) & 1), '?')
+            for i in range(12)
+        )
         return DecodedPacket.from_fields(self.name, freq_hz, {
             "id":       device_id,
             "cmd":      cmd,
