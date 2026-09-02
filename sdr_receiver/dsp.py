@@ -26,7 +26,7 @@ def demodulate_ook(
     sample_rate: int,
     threshold: float = 0.5,
     hysteresis: float = 0.15,
-    smooth_us: float = 8.0,
+    smooth_us: float = 50.0,
 ) -> list[Pulse]:
     """Convert complex I/Q samples to a list of OOK pulses.
 
@@ -70,7 +70,7 @@ def demodulate_ook(
         pulse_us = (fall - rise) * us_per_sample
         gap_us = (next_rise - fall) * us_per_sample
 
-        if pulse_us >= 50:
+        if pulse_us >= 100:
             pulses.append(Pulse(pulse_us=pulse_us, gap_us=gap_us))
         i += 2
 
