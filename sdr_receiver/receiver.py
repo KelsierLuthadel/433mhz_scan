@@ -56,10 +56,17 @@ class OOKReceiver:
                 if stop and stop.is_set():
                     break
                 pulses = demodulate_ook(samples, self.sample_rate)
-                for packet_pulses in extract_packets(pulses, reset_us=RESET_GAP_US):
+                if pulses:
+                    logger.debug("chunk: %d pulses", len(pulses))
+                packets = extract_packets(pulses, reset_us=RESET_GAP_US)
+                if packets:
+                    logger.debug("packets found: %d", len(packets))
+                for packet_pulses in packets:
                     pkt = try_decode(packet_pulses, self.freq_hz)
                     if pkt is not None:
                         yield pkt
+                    else:
+                        logger.debug("no decoder matched (%d pulses)", len(packet_pulses))
 
 
 class UATReceiver:
