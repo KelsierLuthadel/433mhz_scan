@@ -57,7 +57,8 @@ class OOKReceiver:
                     break
                 pulses = demodulate_ook(samples, self.sample_rate)
                 if pulses:
-                    logger.debug("chunk: %d pulses", len(pulses))
+                    widths = [round(p.pulse_us) for p in pulses[:8]]
+                    logger.debug("chunk: %d pulses, widths(us)=%s", len(pulses), widths)
                 packets = extract_packets(pulses, reset_us=RESET_GAP_US)
                 if packets:
                     logger.debug("packets found: %d", len(packets))
