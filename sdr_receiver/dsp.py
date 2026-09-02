@@ -145,16 +145,12 @@ def demodulate_fsk(
     sample_rate: int,
     bit_rate: float,
 ) -> np.ndarray:
-    """CPFSK demodulation: returns a uint8 bit array (0/1 per bit)."""
+    """FM discriminate IQ samples → uint8 chip array at bit_rate chips/s."""
     phase_diff = np.angle(samples[1:] * np.conj(samples[:-1]))
-    sps = sample_rate / bit_rate
-    n_bits = int(len(phase_diff) / sps)
-    bits = np.zeros(n_bits, dtype=np.uint8)
-    for b in range(n_bits):
-        s = int(b * sps)
-        e = min(int((b + 1) * sps), len(phase_diff))
-        bits[b] = 1 if float(np.mean(phase_diff[s:e])) > 0 else 0
-    return bits
+    sps = int(round(sample_rate / bit_rate))
+    n_chips = len(phase_diff) // sps
+    averaged = phase_diff[: n_chips * sps].reshape(n_chips, sps).mean(axis=1)
+    return (averaged > 0).astype(np.uint8)
 
 
 # ---------------------------------------------------------------------------
@@ -256,12 +252,20 @@ def bits_to_int(bits: list[int] | np.ndarray, msb_first: bool = True) -> int:
     return result
 
 
-def crc8(data: bytes, poly: int = 0x31, init: int = 0x00) -> int:
-    crc = init
-    for byte in data:
-        crc ^= byte
-        for _ in range(8):
-            crc = ((crc << 1) ^ poly) & 0xFF if crc & 0x80 else (crc << 1) & 0xFF
+def crc8(data: bytes, poly: int = 0x31, init: int = 0x00, reflected: bool = False) -> int:
+    if reflected:
+        ref_poly = int(f"{poly:08b}"[::-1], 2)
+        crc = init
+        for byte in data:
+            crc ^= byte
+            for _ in range(8):
+                crc = ((crc >> 1) ^ ref_poly) if crc & 1 else (crc >> 1)
+    else:
+        crc = init
+        for byte in data:
+            crc ^= byte
+            for _ in range(8):
+                crc = ((crc << 1) ^ poly) & 0xFF if crc & 0x80 else (crc << 1) & 0xFF
     return crc
 
 

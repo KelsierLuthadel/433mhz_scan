@@ -273,6 +273,7 @@ __all__ = [
     "ThermoProTX7B",
     # auriol_a group
     "Auriol4LD5661",
+    "Auriol4LD6654",
     "AuriolAFT77B2",
     "AuriolAFW2A1",
     "AuriolAHFL",

@@ -10,7 +10,7 @@ import logging
 import threading
 from collections.abc import Generator
 
-from .devices import try_decode
+from .devices import try_decode, try_decode_fsk
 from .devices.uat978 import UATDecoder
 from .dsp import RESET_GAP_US, demodulate_ook, extract_packets
 from .hardware import CHUNK_SAMPLES, SDRDevice
@@ -24,6 +24,9 @@ UAT_FREQ_HZ      = 978e6
 OOK_SAMPLE_RATE  = 250_000
 
 _uat_decoder = UATDecoder()
+
+# Longest real protocol (Roboguard) uses 216 pulses; anything beyond this is noise
+MAX_PACKET_PULSES = 400
 
 
 class OOKReceiver:
@@ -55,18 +58,26 @@ class OOKReceiver:
             for samples in dev.stream(self.chunk):
                 if stop and stop.is_set():
                     break
+                # OOK pipeline
                 pulses = demodulate_ook(samples, self.sample_rate)
                 packets = extract_packets(pulses, reset_us=RESET_GAP_US)
                 if packets:
                     widths = [round(p.pulse_us) for p in pulses[:8]]
                     logger.debug("chunk: %d pulses, %d packets, widths(us)=%s", len(pulses), len(packets), widths)
                 for packet_pulses in packets:
+                    if len(packet_pulses) > MAX_PACKET_PULSES:
+                        continue
                     pkt = try_decode(packet_pulses, self.freq_hz)
                     if pkt is not None:
                         yield pkt
                     else:
                         widths = [(round(p.pulse_us), round(p.gap_us)) for p in packet_pulses[:6]]
                         logger.debug("no decoder matched (%d pulses) pulse/gap(us)=%s", len(packet_pulses), widths)
+
+                # FSK pipeline (runs on the same raw IQ samples)
+                fsk_pkt = try_decode_fsk(samples, self.sample_rate, self.freq_hz)
+                if fsk_pkt is not None:
+                    yield fsk_pkt
 
 
 class UATReceiver:

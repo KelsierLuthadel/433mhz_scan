@@ -7,6 +7,7 @@ from .BadgerWater import BadgerWater
 from .NeptuneR900 import NeptuneR900
 from .NeptuneR900BCD import NeptuneR900BCD
 from .OilSmart import OilSmart
+from .OilSonicSmart import OilSonicSmart
 from .OilStandard import OilStandard
 from .OilWatchman import OilWatchman
 from .OilWatchmanAdvanced import OilWatchmanAdvanced
@@ -28,6 +29,7 @@ __all__ = [
     "NeptuneR900",
     "NeptuneR900BCD",
     "OilSmart",
+    "OilSonicSmart",
     "OilStandard",
     "OilWatchman",
     "OilWatchmanAdvanced",

@@ -264,6 +264,7 @@ from .water_meters import (
     NeptuneR900,
     NeptuneR900BCD,
     OilSmart,
+    OilSonicSmart,
     OilStandard,
     OilWatchman,
     OilWatchmanAdvanced,
@@ -808,6 +809,19 @@ DEVICE_REGISTRY: list = [
 def try_decode(pulses: "list[Pulse]", freq_hz: float) -> "DecodedPacket | None":
     for decoder in DEVICE_REGISTRY:
         result = decoder.decode(pulses, freq_hz)
+        if result is not None:
+            return result
+    return None
+
+
+FSK_REGISTRY: list = [
+    OilSonicSmart(),
+]
+
+
+def try_decode_fsk(samples, sample_rate: int, freq_hz: float) -> "DecodedPacket | None":
+    for decoder in FSK_REGISTRY:
+        result = decoder.decode_fsk(samples, sample_rate)
         if result is not None:
             return result
     return None

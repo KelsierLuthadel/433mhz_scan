@@ -1,67 +1,68 @@
-"""Console display for decoded packets."""
+"""Console display for decoded packets  rtl_433 kv-format output."""
 
 from datetime import datetime
 
 from .packet import DecodedPacket
 
-# ANSI colour helpers (fallback gracefully if terminal doesn't support them)
-RESET = "\033[0m"
-BOLD = "\033[1m"
-GREEN = "\033[32m"
-CYAN = "\033[36m"
-YELLOW = "\033[33m"
-MAGENTA = "\033[35m"
-DIM = "\033[2m"
+RESET   = "\033[0m"
+BOLD    = "\033[1m"
+CYAN    = "\033[36m"
+YELLOW  = "\033[33m"
+WHITE   = "\033[97m"
+DIM     = "\033[2m"
+
+_UNITS = {
+    "temperature_C":  " °C",
+    "temperature_1_C": " °C",
+    "temperature_2_C": " °C",
+    "humidity":       " %",
+    "pressure_hPa":   " hPa",
+    "wind_speed_ms":  " m/s",
+    "wind_dir_deg":   " °",
+    "rain_mm":        " mm",
+    "rain_rate_mm_h": " mm/h",
+    "distance_mm":    " mm",
+}
 
 
-def _colour(text: str, code: str) -> str:
-    return f"{code}{text}{RESET}"
+def _fmt_value(key: str, value) -> str:
+    unit = _UNITS.get(key, "")
+    if isinstance(value, float):
+        formatted = f"{value:.2f}".rstrip("0").rstrip(".")
+        return f"{formatted}{unit}"
+    return f"{value}{unit}"
 
 
 def format_packet(pkt: DecodedPacket, use_colour: bool = True) -> str:
-    c = (lambda t, code: _colour(t, code)) if use_colour else (lambda t, _: t)
+    def c(text: str, code: str) -> str:
+        return f"{code}{text}{RESET}" if use_colour else text
 
-    ts = pkt.time.strftime("%H:%M:%S.%f")[:-3]
-    header = (
-        f"{c(ts, DIM)}  "
-        f"{c(pkt.model, BOLD + GREEN)}  "
-        f"[{c(pkt.freq_mhz, CYAN)}]"
-    )
+    lines: list[str] = []
 
-    # Signal quality
-    rssi = pkt.raw.get("rssi")
-    snr = pkt.raw.get("snr")
-    sig_parts = []
-    if rssi is not None:
-        sig_parts.append(f"RSSI {rssi:.1f} dBm")
-    if snr is not None:
-        sig_parts.append(f"SNR {snr:.1f} dB")
-    signal_str = c("  " + "  ".join(sig_parts), DIM) if sig_parts else ""
+    # time and model header
+    ts = pkt.time.strftime("%Y-%m-%d %H:%M:%S")
+    lines.append(f"{'time':<10}: {c(ts, DIM)}")
+    lines.append(f"{'model':<10}: {c(pkt.model, BOLD + WHITE)}")
 
-    # Device identity
-    id_parts = []
-    for key in ("id", "channel", "subtype"):
-        val = pkt.raw.get(key)
-        if val is not None:
-            id_parts.append(f"{key}={val}")
-    id_str = c("  " + " ".join(id_parts), YELLOW) if id_parts else ""
+    _skip = {"time", "model", "freq", "frequency"}
+    for key, val in pkt.raw.items():
+        if key in _skip:
+            continue
+        fval = _fmt_value(key, val)
+        lines.append(f"{key:<10}: {c(fval, CYAN)}")
 
-    # Payload fields
-    fields = pkt.summary_fields()
-    payload_parts = [f"{c(k, MAGENTA)}={v}" for k, v in fields.items()]
-    payload_str = "  " + "  ".join(payload_parts) if payload_parts else ""
-
-    return header + signal_str + id_str + payload_str
+    return "\n".join(lines)
 
 
 def print_packet(pkt: DecodedPacket, use_colour: bool = True) -> None:
     print(format_packet(pkt, use_colour=use_colour))
+    print()
 
 
 def print_startup_banner(freq_labels: list[str], mode: str) -> None:
-    print(f"\n{'=' * 60}")
-    print(f"  RTL-SDR Self-Contained Decoder")
+    print(f"\n{'_' * 60}")
+    print(f"  RTL-SDR Decoder")
     print(f"  Mode    : {mode}")
     print(f"  Freqs   : {', '.join(freq_labels)}")
     print(f"  Started : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"{'=' * 60}\n")
+    print(f"{'_' * 60}\n")

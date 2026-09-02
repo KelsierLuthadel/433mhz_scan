@@ -213,15 +213,14 @@ class FSKManchesterDecoder(FSKPCMDecoder):
 
     def decode_fsk(self, samples, sample_rate: int) -> DecodedPacket | None:
         from ..dsp import demodulate_fsk
-        import numpy as np
         raw = demodulate_fsk(samples, sample_rate, self.bit_rate)
-        # Re-interpret as pulses for Manchester layer
+        us_per_chip = 1e6 / self.bit_rate
         bits = pulses_to_bits_manchester(
-            _fsk_bits_to_pulses(raw, self.bit_rate), 1.0, self.inverted
+            _fsk_bits_to_pulses(raw, self.bit_rate), us_per_chip, self.inverted
         )
         if bits is None or len(bits) < self.n_bits:
             return None
-        for off in range(min(self.max_offset, len(bits) - self.n_bits + 1)):
+        for off in range(len(bits) - self.n_bits + 1):
             result = self._parse(bits[off : off + self.n_bits], self.freq_hz)
             if result is not None:
                 return result

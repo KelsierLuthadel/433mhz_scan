@@ -46,4 +46,5 @@ __all__ = [
     "HCS362",
     "SecplusV1",
     "SecplusV2",
+    "RoboguardIQBlue",
 ]
