@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import logging
 import threading
-from collections import defaultdict
 from collections.abc import Generator
-from time import monotonic
+
+import numpy as np
 
 from .devices import try_decode, try_decode_fsk
 from .devices.uat978 import UATDecoder
@@ -30,27 +30,20 @@ _uat_decoder = UATDecoder()
 # Longest real protocol (Roboguard) uses 216 pulses; anything beyond this is noise
 MAX_PACKET_PULSES = 400
 
+# Squelch: peak magnitude must exceed the noise floor (20th-percentile) by this factor.
+# Pure AWGN noise gives a ratio of ~7.5; real signals at usable SNR give 10+.
+_SQUELCH_RATIO = 10.0
 
-class _RepeatFilter:
-    """Pass a packet only once it has been seen min_count times within window_s seconds.
 
-    Real transmitters repeat the same burst 3-10 times in quick succession.
-    Noise produces a different random decode each time, so it never accumulates.
-    """
-
-    def __init__(self, min_count: int = 2, window_s: float = 5.0) -> None:
-        self._min = min_count
-        self._window = window_s
-        self._seen: dict[tuple, list[float]] = defaultdict(list)
-
-    def allow(self, pkt: DecodedPacket) -> bool:
-        key = (pkt.model, str(pkt.raw.get("id", "")))
-        now = monotonic()
-        times = self._seen[key]
-        times.append(now)
-        cutoff = now - self._window
-        self._seen[key] = [t for t in times if t >= cutoff]
-        return len(self._seen[key]) >= self._min
+def _has_carrier(samples: np.ndarray) -> bool:
+    """Return True if the chunk contains a real RF burst above the noise floor."""
+    mag = np.abs(samples).astype(np.float32)
+    peak = float(mag.max())
+    if peak < 1e-6:
+        return False
+    k = max(1, len(mag) // 5)
+    noise_floor = float(np.partition(mag, k)[k])
+    return noise_floor > 1e-8 and peak / noise_floor >= _SQUELCH_RATIO
 
 
 class OOKReceiver:
@@ -73,7 +66,6 @@ class OOKReceiver:
     def stream(
         self, stop: threading.Event | None = None
     ) -> Generator[DecodedPacket, None, None]:
-        repeat = _RepeatFilter()
         with SDRDevice(
             device_index=self.device_index,
             center_freq=self.freq_hz,
@@ -83,6 +75,9 @@ class OOKReceiver:
             for samples in dev.stream(self.chunk):
                 if stop and stop.is_set():
                     break
+                if not _has_carrier(samples):
+                    continue
+
                 # OOK pipeline
                 pulses = demodulate_ook(samples, self.sample_rate)
                 packets = extract_packets(pulses, reset_us=RESET_GAP_US)
@@ -90,12 +85,12 @@ class OOKReceiver:
                     if len(packet_pulses) > MAX_PACKET_PULSES:
                         continue
                     pkt = try_decode(packet_pulses, self.freq_hz)
-                    if pkt is not None and repeat.allow(pkt):
+                    if pkt is not None:
                         yield pkt
 
                 # FSK pipeline (runs on the same raw IQ samples)
                 fsk_pkt = try_decode_fsk(samples, self.sample_rate, self.freq_hz)
-                if fsk_pkt is not None and repeat.allow(fsk_pkt):
+                if fsk_pkt is not None:
                     yield fsk_pkt
 
 
