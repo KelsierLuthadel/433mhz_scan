@@ -61,18 +61,12 @@ class OOKReceiver:
                 # OOK pipeline
                 pulses = demodulate_ook(samples, self.sample_rate)
                 packets = extract_packets(pulses, reset_us=RESET_GAP_US)
-                if packets:
-                    widths = [round(p.pulse_us) for p in pulses[:8]]
-                    logger.debug("chunk: %d pulses, %d packets, widths(us)=%s", len(pulses), len(packets), widths)
                 for packet_pulses in packets:
                     if len(packet_pulses) > MAX_PACKET_PULSES:
                         continue
                     pkt = try_decode(packet_pulses, self.freq_hz)
                     if pkt is not None:
                         yield pkt
-                    else:
-                        widths = [(round(p.pulse_us), round(p.gap_us)) for p in packet_pulses[:6]]
-                        logger.debug("no decoder matched (%d pulses) pulse/gap(us)=%s", len(packet_pulses), widths)
 
                 # FSK pipeline (runs on the same raw IQ samples)
                 fsk_pkt = try_decode_fsk(samples, self.sample_rate, self.freq_hz)
