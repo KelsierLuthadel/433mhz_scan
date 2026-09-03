@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections import defaultdict
 from collections.abc import Generator
+from time import monotonic
 
 from .devices import try_decode, try_decode_fsk
 from .devices.uat978 import UATDecoder
@@ -27,6 +29,28 @@ _uat_decoder = UATDecoder()
 
 # Longest real protocol (Roboguard) uses 216 pulses; anything beyond this is noise
 MAX_PACKET_PULSES = 400
+
+
+class _RepeatFilter:
+    """Pass a packet only once it has been seen min_count times within window_s seconds.
+
+    Real transmitters repeat the same burst 3-10 times in quick succession.
+    Noise produces a different random decode each time, so it never accumulates.
+    """
+
+    def __init__(self, min_count: int = 2, window_s: float = 5.0) -> None:
+        self._min = min_count
+        self._window = window_s
+        self._seen: dict[tuple, list[float]] = defaultdict(list)
+
+    def allow(self, pkt: DecodedPacket) -> bool:
+        key = (pkt.model, str(pkt.raw.get("id", "")))
+        now = monotonic()
+        times = self._seen[key]
+        times.append(now)
+        cutoff = now - self._window
+        self._seen[key] = [t for t in times if t >= cutoff]
+        return len(self._seen[key]) >= self._min
 
 
 class OOKReceiver:
@@ -49,6 +73,7 @@ class OOKReceiver:
     def stream(
         self, stop: threading.Event | None = None
     ) -> Generator[DecodedPacket, None, None]:
+        repeat = _RepeatFilter()
         with SDRDevice(
             device_index=self.device_index,
             center_freq=self.freq_hz,
@@ -65,12 +90,12 @@ class OOKReceiver:
                     if len(packet_pulses) > MAX_PACKET_PULSES:
                         continue
                     pkt = try_decode(packet_pulses, self.freq_hz)
-                    if pkt is not None:
+                    if pkt is not None and repeat.allow(pkt):
                         yield pkt
 
                 # FSK pipeline (runs on the same raw IQ samples)
                 fsk_pkt = try_decode_fsk(samples, self.sample_rate, self.freq_hz)
-                if fsk_pkt is not None:
+                if fsk_pkt is not None and repeat.allow(fsk_pkt):
                     yield fsk_pkt
 
 
